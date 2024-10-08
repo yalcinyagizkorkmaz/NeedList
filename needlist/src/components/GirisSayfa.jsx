@@ -11,13 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export function GirisSayfa() {
   return (
@@ -35,7 +28,7 @@ export function GirisSayfa() {
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="name">Password</Label>
-              <Input id="pasword" placeholder="***********" />
+              <Input id="password" type="password" placeholder="***********" />
             </div>
           </div>
         </form>
