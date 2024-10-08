@@ -23,7 +23,7 @@ export function GirisSayfa() {
   return (
     <Card className="w-[350px]">
       <CardHeader>
-        <CardTitle>Need List</CardTitle>
+        <CardTitle>NeedList</CardTitle>
         <CardDescription>Deploy your new project in one-click.</CardDescription>
       </CardHeader>
       <CardContent>
