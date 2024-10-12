@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import axios from "axios"; // HTTP istekleri için axios kullanıyoruz
@@ -116,13 +117,18 @@ export function GirisSayfa() {
 
   return (
     <Card className="w-[350px]">
-      <CardHeader>
+      <CardHeader className="relative">
         <CardTitle>NeedList</CardTitle>
+        <Avatar className="absolute top-3 right-3">
+          <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+          <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
         <CardDescription>Deploy your new project in one-click.</CardDescription>
         {errorMessage && (
           <p className="text-red-500 text-xs italic mb-4">{errorMessage}</p>
         )}
       </CardHeader>
+
       <CardContent>
         <form>
           <div className="grid w-full items-center gap-4">
@@ -153,34 +159,33 @@ export function GirisSayfa() {
           <Button
             variant="outline"
             className="border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white"
-            onClick={handleLogin} // Login fonksiyonu tetikleniyor
+            onClick={handleLogin} // Login function is triggered
           >
             Login
           </Button>
           <Button
             variant="outline"
             className="border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white"
-            onClick={handleRegister} // Register fonksiyonu tetikleniyor
+            onClick={handleRegister} // Register function is triggered
           >
             Register
           </Button>
-
           <Button
             variant="outline"
             className="border-green-400 text-red-400 hover:bg-orange-400"
-            onClick={toggleFamilyList} // Family listesi açılıp kapanıyor
+            onClick={toggleFamilyList} // Toggles the family list visibility
           >
             Family Account
           </Button>
         </div>
 
-        {showFamilyList && ( // Eğer showFamilyList true ise liste görünür.
+        {showFamilyList && ( // If showFamilyList is true, the list is displayed.
           <div className="mt-4 p-2 border rounded-lg bg-gray-100">
-            <h3 className="text-lg font-semibold mb-2">Family List</h3>
+            <h3 className="text-lg font-semibold mb-2">Family ID List</h3>
             <ul className="list-disc pl-5 space-y-1">
               {familyMembers.map((member) => (
                 <li key={member.id}>
-                  {member.name} (ID: {member.id}) {/* ID ve isim gösterimi */}
+                  Family ID: {member.id} {/* Display only the family ID */}
                 </li>
               ))}
             </ul>
