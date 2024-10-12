@@ -10,7 +10,7 @@ class User(Base):
     user_id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     userpassword = Column(String)
-    family_id=Column(Integer,primary_key=True,index=True)
+   
     
     # Establish a relationship with Market_List
     need_list_items = relationship("Need_List", back_populates="owner")

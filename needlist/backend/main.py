@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel,validator
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, SessionLocal
 from model import User, Need_List  # Use relative import
@@ -27,11 +27,12 @@ app = FastAPI()
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Update with your frontend's URL
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Allow specific methods
+    allow_headers=["Authorization", "Content-Type"],  # Allow necessary headers
 )
+
 
 # Logging middleware
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -57,10 +58,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class UserCreate(BaseModel):
     username: str
     userpassword: str
+  
+   
+
 
 class UserLogin(BaseModel):
     username: str
     userpassword: str
+  
 
 def get_db():
     db = SessionLocal()
@@ -123,6 +128,11 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
 
 # Register User Endpoint
 
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the Market List API!"}
+
+
 @app.post("/token", response_model=dict)
 def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == form_data.username).first()
@@ -136,11 +146,6 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-
-
-
-
-from fastapi import HTTPException, status
 
 @app.post("/register/")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -161,6 +166,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     return {"message": "User registered successfully", "user_id": new_user.user_id}
+
 
 
 # Login User Endpoint
