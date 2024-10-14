@@ -9,7 +9,7 @@ from pydantic import BaseModel,validator
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, SessionLocal
 from model import User, Need_List  # Use relative import
-from typing import List
+from typing import List,Optional
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
@@ -58,14 +58,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class UserCreate(BaseModel):
     username: str
     userpassword: str
-  
+    family_id: Optional[str] = None  # Make family_id optional
    
 
 
 class UserLogin(BaseModel):
     username: str
     userpassword: str
-  
+    family_id: Optional[str] = None  # Make family_id optional
 
 def get_db():
     db = SessionLocal()
@@ -166,6 +166,8 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     return {"message": "User registered successfully", "user_id": new_user.user_id}
+
+
 
 
 

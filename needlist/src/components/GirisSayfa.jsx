@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-
-import { jwtDecode } from "jwt-decode"; // Düzeltilmiş import
+import { jwtDecode } from "jwt-decode";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,29 +13,22 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import axios from "axios"; // HTTP istekleri için axios kullanıyoruz
+import axios from "axios";
 import { useState } from "react";
 
-export function GirisSayfa() {
+function GirisSayfa() {
   const [showFamilyList, setShowFamilyList] = React.useState(false);
   const [username, setUsername] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const navigate = useNavigate();
   const [password, setPassword] = React.useState("");
+  const [family_id, setFamilyCode] = useState("");
+  const [isLogin, setIsLogin] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
+  const navigate = useNavigate();
 
-  const familyMembers = [
-    { id: 1, username: "Hasan Arda Kaşıkçı" },
-    { id: 2, username: "Aziz Yıldırım" },
-    { id: 3, username: "Sertaç Şanlı" },
-    { id: 4, username: "Volkan Demirel" },
-  ];
-
-  // Family listesi açılıp kapandığında bu fonksiyon çalışır.
   const toggleFamilyList = () => {
     setShowFamilyList(!showFamilyList);
   };
-
-  //Register Fonk
   const handleRegister = async (event) => {
     event.preventDefault();
     setErrorMessage("");
@@ -57,7 +49,7 @@ export function GirisSayfa() {
         }
       );
 
-      if (response.status === 201) {
+      if (response.status === 200) {
         setErrorMessage("User registered successfully!");
         // After successful registration, log in the user
         handleLogin();
@@ -69,7 +61,6 @@ export function GirisSayfa() {
     } catch (error) {
       if (error.response) {
         if (error.response.status === 409) {
-          // Conflict error indicates the user is already registered
           setErrorMessage("This user is already registered.");
         } else {
           setErrorMessage(
@@ -99,7 +90,6 @@ export function GirisSayfa() {
         const decodedToken = jwtDecode(token);
         const user_id = decodedToken.user_id;
 
-        console.log("Navigating to ListSayfa..."); // Log to check if this line is reached
         navigate("/ListSayfa", {
           state: { userName: username, user_id: user_id },
         });
@@ -112,6 +102,16 @@ export function GirisSayfa() {
       } else {
         setErrorMessage("No response received from server.");
       }
+    }
+  };
+
+  const handleAxiosError = (error) => {
+    if (error.response) {
+      console.error(error.response.data);
+      setErrorMessage(error.response.data.detail || "An error occurred.");
+    } else {
+      console.error(error);
+      setErrorMessage("No response received from server.");
     }
   };
 
@@ -133,7 +133,7 @@ export function GirisSayfa() {
         <form>
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Username</Label>
               <Input
                 id="name"
                 placeholder="Name"
@@ -151,48 +151,65 @@ export function GirisSayfa() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {showFamilyList && (
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="familyCode">Family Code</Label>
+                <Input
+                  id="family_id"
+                  placeholder="***********"
+                  value={family_id}
+                  onChange={(e) => setFamilyCode(e.target.value)}
+                />
+              </div>
+            )}
           </div>
         </form>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-2">
-        <div className="flex justify-between space-x-2">
+      <CardFooter className="flex flex-col space-y-2 w-full">
+        <div className="flex flex-col space-y-2 w-full">
+          {loading ? (
+            <Button disabled className="w-full">
+              Loading...
+            </Button>
+          ) : isLogin ? (
+            <Button
+              variant="outline"
+              className="w-full border-green-400 text-green-400 hover:bg-green-400 hover:text-white"
+              onClick={handleLogin}
+            >
+              Sign In
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white"
+              onClick={handleRegister}
+            >
+              Sign Up
+            </Button>
+          )}
           <Button
             variant="outline"
-            className="border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white"
-            onClick={handleLogin} // Login function is triggered
+            className="w-full border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white"
+            onClick={toggleFamilyList}
           >
-            Login
-          </Button>
-          <Button
-            variant="outline"
-            className="border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white"
-            onClick={handleRegister} // Register function is triggered
-          >
-            Register
-          </Button>
-          <Button
-            variant="outline"
-            className="border-green-400 text-red-400 hover:bg-orange-400"
-            onClick={toggleFamilyList} // Toggles the family list visibility
-          >
-            Family Account
+            {showFamilyList ? "Hide Family Account" : "Join Family Account"}
           </Button>
         </div>
-
-        {showFamilyList && ( // If showFamilyList is true, the list is displayed.
-          <div className="mt-4 p-2 border rounded-lg bg-gray-100">
-            <h3 className="text-lg font-semibold mb-2">Family ID List</h3>
-            <ul className="list-disc pl-5 space-y-1">
-              {familyMembers.map((member) => (
-                <li key={member.id}>
-                  Family ID: {member.id} {/* Display only the family ID */}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="flex justify-center mt-2">
+          <Label className="text-center">
+            {isLogin ? "Don't have an account? " : "Already have an account? "}
+            <span
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-blue-500 hover:underline cursor-pointer"
+            >
+              {isLogin ? "Sign Up" : "Sign In"}
+            </span>
+          </Label>
+        </div>
       </CardFooter>
     </Card>
   );
 }
+
 export default GirisSayfa;

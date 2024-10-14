@@ -271,7 +271,7 @@ const ListSayfa = () => {
                     }}
                     className="hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    Add
+                    ADD
                   </Button>
                 </form>
               </div>
