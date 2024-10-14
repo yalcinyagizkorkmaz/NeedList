@@ -58,14 +58,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class UserCreate(BaseModel):
     username: str
     userpassword: str
-    family_id: Optional[str] = None  # Make family_id optional
+    family_id: Optional[int] = None  # Make family_id optional
    
 
 
 class UserLogin(BaseModel):
     username: str
     userpassword: str
-    family_id: Optional[str] = None  # Make family_id optional
+    family_id: Optional[int] = None  # Make family_id optional
 
 def get_db():
     db = SessionLocal()
@@ -111,6 +111,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # Password Hashing Functions
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+    
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
@@ -149,40 +150,40 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 @app.post("/register/")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    # Check if the user already exists
     db_user = db.query(User).filter(User.username == user.username).first()
-    
     if db_user:
-        # If user is already registered, raise HTTP 409 Conflict
+        # Return HTTP 409 Conflict if user already registered
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User already registered"
         )
     
-    # If the user is not found, register the new user
+    # Hash the password before saving
     hashed_password = get_password_hash(user.userpassword)
-    new_user = User(username=user.username, userpassword=hashed_password)
+    # Create new user with the optional family_id
+    new_user = User(username=user.username, userpassword=hashed_password, family_id=user.family_id)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
     return {"message": "User registered successfully", "user_id": new_user.user_id}
 
-
-
-
-
 # Login User Endpoint
 @app.post("/login/")
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
     if not db_user or not verify_password(user.userpassword, db_user.userpassword):
-        raise HTTPException(status_code=400, detail="Invalid username or password")
+        # Raise HTTP 400 Bad Request if credentials are incorrect
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid username or password")
     
+    # Create the access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "user_id": db_user.user_id}, 
+        data={"sub": user.username, "user_id": db_user.user_id},
         expires_delta=access_token_expires
     )
+    # Return the access token to the user
     return {"access_token": access_token, "token_type": "bearer"}
 
 # Market List Endpoints

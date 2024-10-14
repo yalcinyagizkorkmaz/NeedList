@@ -36,6 +36,7 @@ function GirisSayfa() {
     const requestData = {
       username: username,
       userpassword: password,
+      ...(family_id && { family_id }), // Include family_id if it is defined
     };
 
     try {
@@ -51,8 +52,9 @@ function GirisSayfa() {
 
       if (response.status === 200) {
         setErrorMessage("User registered successfully!");
-        // After successful registration, log in the user
-        handleLogin();
+
+        // Wait for handleLogin to complete before proceeding
+        await handleLogin();
       } else {
         setErrorMessage(
           response.data.detail || "An error occurred during registration."
@@ -77,11 +79,17 @@ function GirisSayfa() {
     event && event.preventDefault();
     setErrorMessage("");
 
+    const requestData = {
+      username: username,
+      userpassword: password,
+      ...(family_id && { family_id }), // Include family_id if it is defined
+    };
+
     try {
-      const response = await axios.post("http://localhost:8000/login/", {
-        username,
-        userpassword: password,
-      });
+      const response = await axios.post(
+        "http://localhost:8000/login/",
+        requestData
+      );
 
       if (response.status === 200) {
         const token = response.data.access_token;
@@ -90,6 +98,7 @@ function GirisSayfa() {
         const decodedToken = jwtDecode(token);
         const user_id = decodedToken.user_id;
 
+        // Navigate to the ListSayfa component with user details
         navigate("/ListSayfa", {
           state: { userName: username, user_id: user_id },
         });
@@ -98,7 +107,11 @@ function GirisSayfa() {
       }
     } catch (error) {
       if (error.response) {
-        setErrorMessage(error.response.data.detail || "Login failed.");
+        if (error.response.status === 400) {
+          setErrorMessage("Invalid username or password.");
+        } else {
+          setErrorMessage(error.response.data.detail || "Login failed.");
+        }
       } else {
         setErrorMessage("No response received from server.");
       }
