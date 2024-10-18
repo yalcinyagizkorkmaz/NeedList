@@ -33,13 +33,15 @@ function GirisSayfa() {
     event.preventDefault();
     setErrorMessage("");
 
+    // Prepare the registration data
     const requestData = {
       username: username,
       userpassword: password,
-      ...(family_id && { family_id }), // Include family_id if it is defined
+      family_id: family_id, // Make sure to pass the familyId state
     };
 
     try {
+      // Send registration request to the backend
       const response = await axios.post(
         "http://localhost:8000/register/",
         requestData,
@@ -50,10 +52,11 @@ function GirisSayfa() {
         }
       );
 
+      // Check response status
       if (response.status === 200) {
         setErrorMessage("User registered successfully!");
 
-        // Wait for handleLogin to complete before proceeding
+        // Log in the user after successful registration
         await handleLogin();
       } else {
         setErrorMessage(
@@ -61,7 +64,9 @@ function GirisSayfa() {
         );
       }
     } catch (error) {
+      // Handle errors
       if (error.response) {
+        // The request was made, and the server responded with a status code
         if (error.response.status === 409) {
           setErrorMessage("This user is already registered.");
         } else {
@@ -69,8 +74,14 @@ function GirisSayfa() {
             error.response.data.detail || "An unexpected error occurred."
           );
         }
+      } else if (error.request) {
+        // The request was made, but no response was received
+        console.error("No response received:", error.request);
+        setErrorMessage("No response from the server. Please try again later.");
       } else {
-        setErrorMessage("Error setting up request.");
+        // Something else happened in setting up the request
+        console.error("Error setting up the request:", error.message);
+        setErrorMessage("An error occurred while setting up the request.");
       }
     }
   };
@@ -108,7 +119,16 @@ function GirisSayfa() {
     } catch (error) {
       if (error.response) {
         if (error.response.status === 400) {
-          setErrorMessage("Invalid username or password.");
+          // Check if the response contains valid_family_ids
+          if (error.response.data.valid_family_ids) {
+            setErrorMessage(
+              `Invalid username, password, or family_id. Available family_ids: ${error.response.data.valid_family_ids.join(
+                ", "
+              )}`
+            );
+          } else {
+            setErrorMessage("Invalid username or password.");
+          }
         } else {
           setErrorMessage(error.response.data.detail || "Login failed.");
         }

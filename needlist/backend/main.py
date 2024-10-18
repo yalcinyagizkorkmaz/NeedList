@@ -58,14 +58,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class UserCreate(BaseModel):
     username: str
     userpassword: str
-    family_id: Optional[int] = None  # Make family_id optional
+    family_id: int # Make family_id optional
    
 
 
 class UserLogin(BaseModel):
     username: str
     userpassword: str
-    family_id: Optional[int] = None  # Make family_id optional
+    family_id: int
 
 def get_db():
     db = SessionLocal()
@@ -90,6 +90,8 @@ class MarketListResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+   
 
 # Get current user from token
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -148,43 +150,115 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+
+# Define your Pydantic model for user registration
+class UserCreate(BaseModel):
+    username: str
+    userpassword: str
+    family_id: int  # family_id is required
+
+# Database dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Registration endpoint
 @app.post("/register/")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     # Check if the user already exists
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
-        # Return HTTP 409 Conflict if user already registered
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User already registered"
         )
-    
+
+    # Check if family_id is provided and valid
+    if user.family_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Family ID is required"
+        )
+
     # Hash the password before saving
     hashed_password = get_password_hash(user.userpassword)
-    # Create new user with the optional family_id
+    # Create a new user with the required family_id
     new_user = User(username=user.username, userpassword=hashed_password, family_id=user.family_id)
+    
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
     return {"message": "User registered successfully", "user_id": new_user.user_id}
 
+
 # Login User Endpoint
+
 @app.post("/login/")
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    # Fetch the user based on username
     db_user = db.query(User).filter(User.username == user.username).first()
-    if not db_user or not verify_password(user.userpassword, db_user.userpassword):
-        # Raise HTTP 400 Bad Request if credentials are incorrect
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid username or password")
-    
+
+    # Check if the user exists
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or password"
+        )
+
+    # Validate the provided password
+    if not verify_password(user.userpassword, db_user.userpassword):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or password"
+        )
+
+    # Fetch all valid family_ids for the user
+    existing_family_ids = db.query(User.family_id).filter(User.username == user.username).all()
+    existing_family_ids_list = [fid[0] for fid in existing_family_ids]
+
+    # Validate the provided family_id if it exists
+    if user.family_id and user.family_id not in existing_family_ids_list:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid family_id for the provided username"
+        )
+
+    # Fetch the market list items for the user's family_ids or the specified family_id
+    market_list_items = db.query(Need_List).filter(
+        Need_List.family_id.in_(existing_family_ids_list) if not user.family_id 
+        else Need_List.family_id == user.family_id
+    ).all()
+
+    # Prepare the response data
+    market_list_response = [
+        MarketListResponse(
+            item_id=item.item_id,
+            item_name=item.item_name,
+            item_status=item.item_status,
+            user_id=item.user_id
+        )
+        for item in market_list_items
+    ]
+
     # Create the access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": db_user.user_id},
         expires_delta=access_token_expires
     )
-    # Return the access token to the user
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    # Return the access token and the user's market list
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "market_list_items": market_list_response  # Include the market list in the response
+    }
+
+
 
 # Market List Endpoints
 @app.post("/list/", response_model=MarketListResponse)
@@ -208,6 +282,7 @@ async def create_market_list_item(
         item_status=new_item.item_status,
         user_id=new_item.user_id
     )
+
 
 @app.get("/list/", response_model=List[MarketListResponse])
 async def get_market_list_items(
@@ -264,3 +339,4 @@ async def delete_item(
         item_status=item.item_status,
         user_id=item.user_id
     )
+

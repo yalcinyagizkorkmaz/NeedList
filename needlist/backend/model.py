@@ -10,7 +10,7 @@ class User(Base):
     user_id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     userpassword = Column(String)
-    family_id = Column(Integer, nullable=True)  # Make family_id optional
+    family_id = Column(Integer, nullable=False)  # Make family_id optional
     
     # Establish a relationship with Market_List
     need_list_items = relationship("Need_List", back_populates="owner")
@@ -22,7 +22,11 @@ class Need_List(Base):
     item_name = Column(String, index=True)
     item_status = Column(String)
     user_id = Column(Integer, ForeignKey('users.user_id'))
+    family_id = Column(Integer, nullable=False) 
+   
    
 
     # Establish the relationship with User
     owner = relationship("User", back_populates="need_list_items")
+
+
