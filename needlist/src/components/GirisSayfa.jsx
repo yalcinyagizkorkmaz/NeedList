@@ -85,10 +85,9 @@ function GirisSayfa() {
       }
     }
   };
-
   const handleLogin = async (event) => {
-    event && event.preventDefault();
-    setErrorMessage("");
+    event && event.preventDefault(); // Prevent default form submission
+    setErrorMessage(""); // Clear any previous error message
 
     const requestData = {
       username: username,
@@ -104,36 +103,61 @@ function GirisSayfa() {
 
       if (response.status === 200) {
         const token = response.data.access_token;
-        localStorage.setItem("token", token);
 
-        const decodedToken = jwtDecode(token);
-        const user_id = decodedToken.user_id;
+        // Ensure token is a valid string before storing and decoding
+        if (typeof token === "string" && token.length > 0) {
+          console.log("Received token:", token); // Log the token for debugging
+          localStorage.setItem("token", token); // Store the token in local storage
 
-        // Navigate to the ListSayfa component with user details
-        navigate("/ListSayfa", {
-          state: { userName: username, user_id: user_id },
-        });
+          // Decode the token
+          const decodedToken = jwtDecode(token);
+          console.log("Decoded token:", decodedToken); // Log decoded token for debugging
+          const user_id = decodedToken.user_id;
+
+          // Navigate to the ListSayfa component with user details
+          navigate("/ListSayfa", {
+            state: {
+              userName: username,
+              user_id: user_id,
+              family_id: family_id,
+            },
+          });
+        } else {
+          console.error("Token is invalid:", token); // Log invalid token
+          setErrorMessage(
+            "Invalid token received. Please try logging in again."
+          );
+        }
       } else {
         setErrorMessage("Login failed. Please try again.");
       }
     } catch (error) {
+      console.error("Login error:", error);
+
       if (error.response) {
         if (error.response.status === 400) {
-          // Check if the response contains valid_family_ids
-          if (error.response.data.valid_family_ids) {
+          const { market_list_items, detail } = error.response.data;
+
+          if (market_list_items) {
             setErrorMessage(
-              `Invalid username, password, or family_id. Available family_ids: ${error.response.data.valid_family_ids.join(
-                ", "
-              )}`
+              `Login successful, but password is invalid. Available items: ${market_list_items
+                .map((item) => item.item_name)
+                .join(", ")}`
             );
+          } else if (detail) {
+            setErrorMessage(detail); // Display the detail message from the backend
           } else {
-            setErrorMessage("Invalid username or password.");
+            setErrorMessage("Invalid username or password."); // Generic error message
           }
         } else {
-          setErrorMessage(error.response.data.detail || "Login failed.");
+          setErrorMessage(error.response.data.detail || "Login failed."); // Handle other error statuses
         }
+      } else if (error.request) {
+        setErrorMessage(
+          "No response received from server. Please check your connection and try again."
+        );
       } else {
-        setErrorMessage("No response received from server.");
+        setErrorMessage(`Error: ${error.message}`);
       }
     }
   };

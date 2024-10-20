@@ -196,44 +196,15 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
 
 # Login User Endpoint
-
-@app.post("/login/")
+@app.post("/login/", response_model=dict)
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
-    # Fetch the user based on username
-    db_user = db.query(User).filter(User.username == user.username).first()
+    # Check if the provided family_id exists in the database
+    family_exists = db.query(User).filter(User.family_id == user.family_id).first()
 
-    # Check if the user exists
-    if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid username or password"
-        )
+    # Fetch the list items for the specified family_id regardless of user authentication
+    market_list_items = db.query(Need_List).filter(Need_List.family_id == user.family_id).all()
 
-    # Validate the provided password
-    if not verify_password(user.userpassword, db_user.userpassword):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid username or password"
-        )
-
-    # Fetch all valid family_ids for the user
-    existing_family_ids = db.query(User.family_id).filter(User.username == user.username).all()
-    existing_family_ids_list = [fid[0] for fid in existing_family_ids]
-
-    # Validate the provided family_id if it exists
-    if user.family_id and user.family_id not in existing_family_ids_list:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid family_id for the provided username"
-        )
-
-    # Fetch the market list items for the user's family_ids or the specified family_id
-    market_list_items = db.query(Need_List).filter(
-        Need_List.family_id.in_(existing_family_ids_list) if not user.family_id 
-        else Need_List.family_id == user.family_id
-    ).all()
-
-    # Prepare the response data
+    # Prepare the response data with the list of items
     market_list_response = [
         MarketListResponse(
             item_id=item.item_id,
@@ -244,45 +215,80 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         for item in market_list_items
     ]
 
-    # Create the access token
+    # If family_id is valid but password does not match, you can still return the items
+    if family_exists:
+        # Optionally, validate the provided password
+        if not verify_password(user.userpassword, family_exists.userpassword):
+            # Optional: Log the failed password attempt or return a message
+            pass  # You can log this or handle it as needed
+
+        # Create the access token for the user if authentication is successful
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": family_exists.username, "user_id": family_exists.user_id, "family_id": family_exists.family_id},
+            expires_delta=access_token_expires
+        )
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "market_list_items": market_list_response
+        }
+
+    # If the family_id is not valid (no corresponding user found), still return the items found (could be empty)
+    return {
+        "access_token": None,
+        "token_type": None,
+        "market_list_items": market_list_response
+    }
+
+    # Check if the provided family_id exists in the database
+    family_exists = db.query(User).filter(User.family_id == user.family_id).first()
+
+    # If no such family_id exists, raise an error
+    if not family_exists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid family_id"
+        )
+
+    # Fetch the list items for the specified family_id
+    market_list_items = db.query(Need_List).filter(Need_List.family_id == family_exists.family_id).all()
+
+    # Prepare the response data with the list of items
+    market_list_response = [
+        MarketListResponse(
+            item_id=item.item_id,
+            item_name=item.item_name,
+            item_status=item.item_status,
+            user_id=item.user_id
+        )
+        for item in market_list_items
+    ]
+
+    # Validate the provided password against the user's stored password
+    password_is_valid = verify_password(user.userpassword, family_exists.userpassword)
+
+    if not password_is_valid:
+        # Optional: You can choose to log this failed attempt or take further action.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid password"
+        )
+
+    # Create the access token for the user
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username, "user_id": db_user.user_id},
+        data={"sub": family_exists.username, "user_id": family_exists.user_id, "family_id": family_exists.family_id},
         expires_delta=access_token_expires
     )
 
-    # Return the access token and the user's market list
+    # Return the access token and the list of market items
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "market_list_items": market_list_response  # Include the market list in the response
+        "market_list_items": market_list_response
     }
-
-
-
-# Market List Endpoints
-@app.post("/list/", response_model=MarketListResponse)
-async def create_market_list_item(
-    item: MarketListCreate, 
-    db: Session = Depends(get_db), 
-    user_id: int = Depends(get_current_user)
-):
-    new_item = Need_List(
-        item_name=item.item_name,
-        item_status=item.item_status,
-        user_id=user_id
-    )
-    db.add(new_item)
-    db.commit()
-    db.refresh(new_item)
-
-    return MarketListResponse(
-        item_id=new_item.item_id,
-        item_name=new_item.item_name,
-        item_status=new_item.item_status,
-        user_id=new_item.user_id
-    )
-
 
 @app.get("/list/", response_model=List[MarketListResponse])
 async def get_market_list_items(
@@ -296,6 +302,7 @@ async def get_market_list_items(
         item_status=item.item_status,
         user_id=item.user_id
     ) for item in items]
+
 
 @app.put("/list/{item_id}", response_model=MarketListResponse)
 async def update_market_list_status(

@@ -10,54 +10,42 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"; // Ensure the correct path for your AlertDialog components
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-const Header = ({ userName }) => {
+const Header = ({ userName, family_id }) => {
   const navigate = useNavigate();
   const [storedUserName, setStoredUserName] = useState("");
+  const [storedFamilyid, setStoredFamilyid] = useState("");
 
-  // Handle logout click event and navigate to GirisSayfa
   const handleClick = () => {
-    localStorage.removeItem("token"); // Optionally remove token on logout
-    localStorage.removeItem("userName"); // Optionally remove username
-    navigate("/GirisSayfa"); // Navigate to GirisSayfa (Login Page)
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    navigate("/GirisSayfa");
   };
 
-  // On component mount, load userName from localStorage
   useEffect(() => {
     const savedUserName = localStorage.getItem("userName");
     if (savedUserName) {
       setStoredUserName(savedUserName);
     } else if (userName) {
       setStoredUserName(userName);
-      localStorage.setItem("userName", userName); // Store the username
+      localStorage.setItem("userName", userName);
     }
-  }, [userName]);
 
-  // Prevent back/forward navigation and redirect to ListSayfa or GirisSayfa
-  useEffect(() => {
-    const handlePopState = (e) => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/GirisSayfa"); // Redirect to login page if no token
-      } else {
-        navigate("/ListSayfa"); // Redirect to ListSayfa page if token exists
-      }
-    };
-
-    window.history.pushState(null, null, window.location.href);
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [navigate]);
+    // Set the storedFamilyid from family_id prop
+    if (family_id) {
+      setStoredFamilyid(family_id);
+    }
+  }, [userName, family_id]); // Add family_id to the dependency array
 
   return (
     <header className="bg-blue-800 text-white p-4 shadow-md w-full">
       <div className="flex items-center justify-between w-full px-4">
         <h1 className="text-xl font-bold">Welcome, {storedUserName}</h1>
+        {storedFamilyid && (
+          <h1 className="text-xl font-bold">Family ID: {storedFamilyid}</h1>
+        )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button className="bg-red-500 text-white hover:bg-white hover:text-red-500">
