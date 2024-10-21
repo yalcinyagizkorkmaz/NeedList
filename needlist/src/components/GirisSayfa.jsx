@@ -208,17 +208,16 @@ function GirisSayfa() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {showFamilyList && (
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="familyCode">Family Code</Label>
-                <Input
-                  id="family_id"
-                  placeholder="***********"
-                  value={family_id}
-                  onChange={(e) => setFamilyCode(e.target.value)}
-                />
-              </div>
-            )}
+
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="familyCode">Family Code</Label>
+              <Input
+                id="family_id"
+                placeholder="***********"
+                value={family_id}
+                onChange={(e) => setFamilyCode(e.target.value)}
+              />
+            </div>
           </div>
         </form>
       </CardContent>
@@ -245,13 +244,6 @@ function GirisSayfa() {
               Sign Up
             </Button>
           )}
-          <Button
-            variant="outline"
-            className="w-full border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white"
-            onClick={toggleFamilyList}
-          >
-            {showFamilyList ? "Hide Family Account" : "Join Family Account"}
-          </Button>
         </div>
         <div className="flex justify-center mt-2">
           <Label className="text-center">

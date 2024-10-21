@@ -21,22 +21,29 @@ const ListSayfa = () => {
   const [items, setItems] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editText, setEditText] = useState("");
+  const [familyId, setFamilyId] = useState(null); // Add state for familyId
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+
     if (!token) return;
 
     try {
       const decodedToken = jwtDecode(token);
       if (decodedToken.exp * 1000 < Date.now()) {
-        localStorage.removeItem("token"); // Optionally remove expired token
+        localStorage.removeItem("token"); // Geçerliliğini yitirmiş token'i kaldır
         return;
       }
+
+      // Token'dan family_id bilgisini al ve state'e ayarla
+      const familyIdFromToken = decodedToken?.family_id || "";
+      setFamilyId(familyIdFromToken);
     } catch (error) {
+      console.error("Token çözme hatası", error);
       return;
     }
 
-    // Fetch items if token is valid
+    // Geçerli token varsa item'ları çek
     axios
       .get("http://127.0.0.1:8000/list/", {
         headers: {
@@ -53,7 +60,7 @@ const ListSayfa = () => {
         );
       })
       .catch((error) => {
-        console.error("There was an error fetching the items!", error);
+        console.error("Item'lar alınırken hata oluştu!", error);
       });
   }, []);
 
@@ -242,7 +249,7 @@ const ListSayfa = () => {
 
   return (
     <div className="flex flex-col h-screen w-full">
-      <Header userName={userName} />
+      <Header userName={userName} family_id={familyId} />
       <div className="flex justify-center items-start flex-grow mt-20">
         <Card className="w-full max-w-[90%] mx-auto">
           <CardHeader>
