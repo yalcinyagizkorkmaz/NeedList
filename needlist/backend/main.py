@@ -300,7 +300,8 @@ async def get_market_list_items(
         item_id=item.item_id,
         item_name=item.item_name,
         item_status=item.item_status,
-        user_id=item.user_id
+        user_id=item.user_id,
+        family_id=item.family_id
     ) for item in items]
 
 @app.post("/list/", response_model=MarketListResponse)
@@ -312,7 +313,8 @@ async def create_market_list_item(
     new_item = Need_List(
         item_name=item.item_name,
         item_status=item.item_status,
-        user_id=user_id
+        user_id=user_id,
+       
        
     )
     db.add(new_item)
@@ -323,7 +325,9 @@ async def create_market_list_item(
         item_id=new_item.item_id,
         item_name=new_item.item_name,
         item_status=new_item.item_status,
-        user_id=new_item.user_id
+        user_id=new_item.user_id,
+        family_id=new_item.family_id
+        
     )
 
 

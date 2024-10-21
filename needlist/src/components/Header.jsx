@@ -21,23 +21,62 @@ const Header = ({ userName, family_id }) => {
   const handleClick = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
+    localStorage.removeItem("family_id"); // family_id'yi de temizle
     navigate("/GirisSayfa");
   };
 
   useEffect(() => {
     const savedUserName = localStorage.getItem("userName");
+    const savedFamily_id = localStorage.getItem("family_id");
+
     if (savedUserName) {
       setStoredUserName(savedUserName);
     } else if (userName) {
       setStoredUserName(userName);
-      localStorage.setItem("userName", userName);
+      localStorage.setItem("userName", userName); // Kullanıcı adını sakla
     }
 
-    // Set the storedFamilyid from family_id prop
-    if (family_id) {
+    if (savedFamily_id) {
+      setStoredFamilyid(savedFamily_id);
+    } else if (family_id) {
       setStoredFamilyid(family_id);
+      localStorage.setItem("family_id", family_id); // family_id'yi sakla
     }
-  }, [userName, family_id]); // Add family_id to the dependency array
+  }, [userName, family_id]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      e.preventDefault();
+      window.history.pushState(null, null, window.location.href); // Sayfayı yeniden ekleyerek geri/ileri tuşlarını etkisiz hale getir
+      alert(
+        "Sayfadan ayrılmak için sadece 'Logout' butonunu kullanabilirsiniz."
+      );
+    };
+
+    // popstate olayını dinle
+    window.addEventListener("popstate", handlePopState);
+
+    // Geçerli durumu geçmişe ekle
+    window.history.pushState(null, null, window.location.href);
+
+    return () => {
+      // popstate olayını temizle
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = ""; // Tarayıcı uyarı mesajı gösterir
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   return (
     <header className="bg-blue-800 text-white p-4 shadow-md w-full">
