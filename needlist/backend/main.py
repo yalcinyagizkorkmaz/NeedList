@@ -168,7 +168,7 @@ def get_db():
 # Registration endpoint
 @app.post("/register/")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if the user already exists
+    # Kullanıcının zaten kayıtlı olup olmadığını kontrol et
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
         raise HTTPException(
@@ -176,16 +176,16 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
             detail="User already registered"
         )
 
-    # Check if family_id is provided and valid
+    # Family ID'nin sağlandığını kontrol et
     if user.family_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Family ID is required"
         )
 
-    # Hash the password before saving
+    # Şifreyi hash'le
     hashed_password = get_password_hash(user.userpassword)
-    # Create a new user with the required family_id
+    # Yeni kullanıcı oluştur
     new_user = User(username=user.username, userpassword=hashed_password, family_id=user.family_id)
     
     db.add(new_user)
@@ -302,6 +302,30 @@ async def get_market_list_items(
         item_status=item.item_status,
         user_id=item.user_id
     ) for item in items]
+
+@app.post("/list/", response_model=MarketListResponse)
+async def create_market_list_item(
+    item: MarketListCreate, 
+    db: Session = Depends(get_db), 
+    user_id: int = Depends(get_current_user)
+):
+    new_item = Need_List(
+        item_name=item.item_name,
+        item_status=item.item_status,
+        user_id=user_id
+       
+    )
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+
+    return MarketListResponse(
+        item_id=new_item.item_id,
+        item_name=new_item.item_name,
+        item_status=new_item.item_status,
+        user_id=new_item.user_id
+    )
+
 
 
 @app.put("/list/{item_id}", response_model=MarketListResponse)
