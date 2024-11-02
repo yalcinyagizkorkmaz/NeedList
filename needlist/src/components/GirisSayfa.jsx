@@ -37,7 +37,7 @@ function GirisSayfa() {
     const requestData = {
       username: username,
       userpassword: password,
-      family_id: family_id, // Make sure to pass the familyId state
+      ...(family_id && { family_id }), // Include family_id only if it has a value
     };
 
     try {
@@ -52,11 +52,12 @@ function GirisSayfa() {
         }
       );
 
-      // Check response status
-      if (response.status === 200) {
+      // Check response status for success
+      if (response.status === 201 || response.status === 200) {
+        // Allow both 201 and 200 statuses
         setErrorMessage("User registered successfully!");
 
-        // Log in the user after successful registration
+        // Optionally log in the user after successful registration
         await handleLogin();
       } else {
         setErrorMessage(
@@ -66,7 +67,6 @@ function GirisSayfa() {
     } catch (error) {
       // Handle errors
       if (error.response) {
-        // The request was made, and the server responded with a status code
         if (error.response.status === 409) {
           setErrorMessage("This user is already registered.");
         } else {
@@ -75,16 +75,15 @@ function GirisSayfa() {
           );
         }
       } else if (error.request) {
-        // The request was made, but no response was received
         console.error("No response received:", error.request);
         setErrorMessage("No response from the server. Please try again later.");
       } else {
-        // Something else happened in setting up the request
         console.error("Error setting up the request:", error.message);
         setErrorMessage("An error occurred while setting up the request.");
       }
     }
   };
+
   const handleLogin = async (event) => {
     event && event.preventDefault(); // Prevent default form submission
     setErrorMessage(""); // Clear any previous error message
@@ -208,16 +207,17 @@ function GirisSayfa() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="familyCode">Family Code</Label>
-              <Input
-                id="family_id"
-                placeholder="***********"
-                value={family_id}
-                onChange={(e) => setFamilyCode(e.target.value)}
-              />
-            </div>
+            {showFamilyList && (
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="familyCode">Family Code</Label>
+                <Input
+                  id="family_id"
+                  placeholder="***********"
+                  value={family_id}
+                  onChange={(e) => setFamilyCode(e.target.value)}
+                />
+              </div>
+            )}
           </div>
         </form>
       </CardContent>
@@ -244,6 +244,17 @@ function GirisSayfa() {
               Sign Up
             </Button>
           )}
+          <Button
+            variant="outline"
+            className="w-full border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white"
+            onClick={toggleFamilyList}
+          >
+            {showFamilyList
+              ? "Hide Family Account"
+              : isLogin
+              ? "Join Family Account"
+              : "Create Family Account"}
+          </Button>
         </div>
         <div className="flex justify-center mt-2">
           <Label className="text-center">

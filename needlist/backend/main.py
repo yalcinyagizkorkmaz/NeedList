@@ -58,14 +58,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class UserCreate(BaseModel):
     username: str
     userpassword: str
-    family_id: int # Make family_id optional
+    family_id: Optional[int] = None  # Make family_id optional with a default value of None
+
    
 
 
 class UserLogin(BaseModel):
     username: str
     userpassword: str
-    family_id: int
+    family_id: Optional[int] = None  # Make family_id optional with a default value of None
+
 
 def get_db():
     db = SessionLocal()
@@ -87,6 +89,7 @@ class MarketListResponse(BaseModel):
     item_name: str
     item_status: str
     user_id: int
+    family_id: Optional[int] = None 
 
     class Config:
         orm_mode = True
@@ -150,49 +153,39 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+import logging
 
-# Define your Pydantic model for user registration
-class UserCreate(BaseModel):
-    username: str
-    userpassword: str
-    family_id: int  # family_id is required
+# Configure logging at the beginning of your main application file
+logging.basicConfig(level=logging.INFO)
 
-# Database dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Registration endpoint
 @app.post("/register/")
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    # Kullanıcının zaten kayıtlı olup olmadığını kontrol et
+    # Check if the username is already registered
     db_user = db.query(User).filter(User.username == user.username).first()
+    
     if db_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User already registered"
         )
-
-    # Family ID'nin sağlandığını kontrol et
-    if user.family_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Family ID is required"
-        )
-
-    # Şifreyi hash'le
-    hashed_password = get_password_hash(user.userpassword)
-    # Yeni kullanıcı oluştur
-    new_user = User(username=user.username, userpassword=hashed_password, family_id=user.family_id)
     
+    # Hash the password
+    hashed_password = get_password_hash(user.userpassword)
+    
+    # Create a new user, including family_id only if provided
+    new_user = User(
+        username=user.username,
+        userpassword=hashed_password,
+        family_id=user.family_id  # This will be None if not provided
+    )
+    
+    # Add and commit the new user
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
     return {"message": "User registered successfully", "user_id": new_user.user_id}
+
 
 
 # Login User Endpoint
@@ -210,7 +203,8 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
             item_id=item.item_id,
             item_name=item.item_name,
             item_status=item.item_status,
-            user_id=item.user_id
+            user_id=item.user_id,
+            family_id=item.family_id
         )
         for item in market_list_items
     ]
@@ -290,19 +284,34 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         "market_list_items": market_list_response
     }
 
+
+
 @app.get("/list/", response_model=List[MarketListResponse])
 async def get_market_list_items(
     db: Session = Depends(get_db), 
     user_id: int = Depends(get_current_user)
 ):
+    # Query to get items for the current user
     items = db.query(Need_List).filter(Need_List.user_id == user_id).all()
-    return [MarketListResponse(
-        item_id=item.item_id,
-        item_name=item.item_name,
-        item_status=item.item_status,
-        user_id=item.user_id,
-        family_id=item.family_id
-    ) for item in items]
+
+    # Check if items exist for the user
+    if not items:
+        raise HTTPException(
+            status_code=404,
+            detail="No market list items found for this user."
+        )
+
+    # Return the list of items using the MarketListResponse model
+    return [
+        MarketListResponse(
+            item_id=item.item_id,
+            item_name=item.item_name,
+            item_status=item.item_status,
+            user_id=item.user_id,
+        ) for item in items
+    ]
+
+
 
 @app.post("/list/", response_model=MarketListResponse)
 async def create_market_list_item(
