@@ -159,32 +159,34 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 @app.post("/register/")
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     # Check if the username is already registered
     db_user = db.query(User).filter(User.username == user.username).first()
-    
     if db_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="User already registered"
         )
-    
-    # Hash the password
+
+    # Hash the password and create a new user
     hashed_password = get_password_hash(user.userpassword)
-    
-    # Create a new user, including family_id only if provided
     new_user = User(
         username=user.username,
         userpassword=hashed_password,
-        family_id=user.family_id  # This will be None if not provided
+        family_id=user.family_id  # family_id can be None
     )
     
-    # Add and commit the new user
+    # Add and commit the new user without adding any list items
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    
-    return {"message": "User registered successfully", "user_id": new_user.user_id}
+
+    # Return a message with an empty list
+    return {
+        "message": "User registered successfully",
+        "user_id": new_user.user_id,
+        "market_list": []  # Explicitly return an empty list for new users
+    }
 
 
 
@@ -288,17 +290,21 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
 
 @app.get("/list/", response_model=List[MarketListResponse])
 async def get_market_list_items(
-    db: Session = Depends(get_db), 
-    user_id: int = Depends(get_current_user)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+    family_id: Optional[int] = None  # Add family_id as an optional parameter
 ):
-    # Query to get items for the current user
-    items = db.query(Need_List).filter(Need_List.user_id == user_id).all()
+    # Query to get items based on family_id if it exists, otherwise by user_id
+    if family_id:
+        items = db.query(Need_List).filter(Need_List.family_id == family_id).all()
+    else:
+        items = db.query(Need_List).filter(Need_List.user_id == user_id).all()
 
-    # Check if items exist for the user
+    # Check if items exist
     if not items:
         raise HTTPException(
             status_code=404,
-            detail="No market list items found for this user."
+            detail="No market list items found for this user or family."
         )
 
     # Return the list of items using the MarketListResponse model
@@ -308,6 +314,7 @@ async def get_market_list_items(
             item_name=item.item_name,
             item_status=item.item_status,
             user_id=item.user_id,
+            family_id=item.family_id  # Include family_id in the response if relevant
         ) for item in items
     ]
 

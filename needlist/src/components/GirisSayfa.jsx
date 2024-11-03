@@ -85,13 +85,13 @@ function GirisSayfa() {
   };
 
   const handleLogin = async (event) => {
-    event && event.preventDefault(); // Prevent default form submission
-    setErrorMessage(""); // Clear any previous error message
+    event && event.preventDefault();
+    setErrorMessage("");
 
     const requestData = {
       username: username,
       userpassword: password,
-      ...(family_id && { family_id }), // Include family_id if it is defined
+      ...(family_id && { family_id }), // Include family_id if defined
     };
 
     try {
@@ -103,26 +103,24 @@ function GirisSayfa() {
       if (response.status === 200) {
         const token = response.data.access_token;
 
-        // Ensure token is a valid string before storing and decoding
         if (typeof token === "string" && token.length > 0) {
-          console.log("Received token:", token); // Log the token for debugging
-          localStorage.setItem("token", token); // Store the token in local storage
+          localStorage.setItem("token", token);
 
-          // Decode the token
           const decodedToken = jwtDecode(token);
-          console.log("Decoded token:", decodedToken); // Log decoded token for debugging
           const user_id = decodedToken.user_id;
 
-          // Navigate to the ListSayfa component with user details
+          // Get the market list items from the response
+          const marketListItems = response.data.market_list_items || [];
+
           navigate("/ListSayfa", {
             state: {
               userName: username,
               user_id: user_id,
               family_id: family_id,
+              market_list: marketListItems, // Pass list items to ListSayfa
             },
           });
         } else {
-          console.error("Token is invalid:", token); // Log invalid token
           setErrorMessage(
             "Invalid token received. Please try logging in again."
           );
@@ -144,16 +142,16 @@ function GirisSayfa() {
                 .join(", ")}`
             );
           } else if (detail) {
-            setErrorMessage(detail); // Display the detail message from the backend
+            setErrorMessage(detail);
           } else {
-            setErrorMessage("Invalid username or password."); // Generic error message
+            setErrorMessage("Invalid username or password.");
           }
         } else {
-          setErrorMessage(error.response.data.detail || "Login failed."); // Handle other error statuses
+          setErrorMessage(error.response.data.detail || "Login failed.");
         }
       } else if (error.request) {
         setErrorMessage(
-          "No response received from server. Please check your connection and try again."
+          "No response from server. Please check your connection."
         );
       } else {
         setErrorMessage(`Error: ${error.message}`);

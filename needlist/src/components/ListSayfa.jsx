@@ -30,22 +30,29 @@ const ListSayfa = () => {
 
     try {
       const decodedToken = jwtDecode(token);
+
+      // Check if the token has expired
       if (decodedToken.exp * 1000 < Date.now()) {
-        localStorage.removeItem("token"); // Geçerliliğini yitirmiş token'i kaldır
+        localStorage.removeItem("token"); // Remove expired token
         return;
       }
 
-      // Token'dan family_id bilgisini al ve state'e ayarla
+      // Get family_id from token if it exists
       const familyIdFromToken = decodedToken?.family_id || "";
       setFamilyId(familyIdFromToken);
     } catch (error) {
-      console.error("Token çözme hatası", error);
+      console.error("Error decoding token", error);
       return;
     }
 
-    // Geçerli token varsa item'ları çek
+    // Set up the query parameter for family_id if it exists
+    const fetchUrl = familyId
+      ? `http://127.0.0.1:8000/list/?family_id=${familyId}`
+      : "http://127.0.0.1:8000/list/";
+
+    // Fetch items with token and family_id if applicable
     axios
-      .get("http://127.0.0.1:8000/list/", {
+      .get(fetchUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -60,9 +67,9 @@ const ListSayfa = () => {
         );
       })
       .catch((error) => {
-        console.error("Item'lar alınırken hata oluştu!", error);
+        console.error("Error fetching items!", error);
       });
-  }, []);
+  }, [familyId]);
 
   // Export functions
   const exportToJson = () => {
