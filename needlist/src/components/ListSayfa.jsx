@@ -45,12 +45,11 @@ const ListSayfa = () => {
       return;
     }
 
-    // Set up the query parameter for family_id if it exists
+    // Set up query parameters based on family_id presence
     const fetchUrl = familyId
       ? `http://127.0.0.1:8000/list/?family_id=${familyId}`
-      : "http://127.0.0.1:8000/list/";
+      : `http://127.0.0.1:8000/list/`;
 
-    // Fetch items with token and family_id if applicable
     axios
       .get(fetchUrl, {
         headers: {

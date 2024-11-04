@@ -147,10 +147,11 @@ def token_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"user_id": db_user.user_id},
+        data={"user_id": db_user.user_id, "family_id": db_user.family_id},  # Include family_id in token data
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 
 import logging
