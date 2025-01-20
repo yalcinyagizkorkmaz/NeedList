@@ -43,7 +43,8 @@ Needlist is a web application designed to manage and organize your essential nee
    ```bash
    git clone https://github.com/yourusername/needlist.git
    cd needlist
-2.   Install dependencies::
+   
+2.   Install dependencies:
    ```bash
     pip install -r requirements.txt
     npm install
