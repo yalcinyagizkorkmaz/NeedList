@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 
 const Header = ({ userName, family_id }) => {
   const navigate = useNavigate();
-  const [storedUserName, setStoredUserName] = useState("");
-  const [storedFamilyid, setStoredFamilyid] = useState("");
+  const [storedUserName, setStoredUserName] = useState(userName || "");
+  const [storedFamilyid, setStoredFamilyid] = useState(family_id || "");
 
   const handleClick = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
-    localStorage.removeItem("family_id"); // family_id'yi de temizle
+    localStorage.removeItem("family_id");
     navigate("/GirisSayfa");
   };
 
@@ -29,38 +29,35 @@ const Header = ({ userName, family_id }) => {
     const savedUserName = localStorage.getItem("userName");
     const savedFamily_id = localStorage.getItem("family_id");
 
-    if (savedUserName) {
-      setStoredUserName(savedUserName);
-    } else if (userName) {
+    // Eğer localStorage'da kullanıcı adı veya family_id yoksa prop'lardan alınır.
+    if (!savedUserName && userName) {
       setStoredUserName(userName);
-      localStorage.setItem("userName", userName); // Kullanıcı adını sakla
+      localStorage.setItem("userName", userName);
+    } else if (savedUserName) {
+      setStoredUserName(savedUserName);
     }
 
-    if (savedFamily_id) {
-      setStoredFamilyid(savedFamily_id);
-    } else if (family_id) {
+    if (!savedFamily_id && family_id) {
       setStoredFamilyid(family_id);
-      localStorage.setItem("family_id", family_id); // family_id'yi sakla
+      localStorage.setItem("family_id", family_id);
+    } else if (savedFamily_id) {
+      setStoredFamilyid(savedFamily_id);
     }
   }, [userName, family_id]);
 
   useEffect(() => {
     const handlePopState = (e) => {
       e.preventDefault();
-      window.history.pushState(null, null, window.location.href); // Sayfayı yeniden ekleyerek geri/ileri tuşlarını etkisiz hale getir
+      window.history.pushState(null, null, window.location.href);
       alert(
         "Sayfadan ayrılmak için sadece 'Logout' butonunu kullanabilirsiniz."
       );
     };
 
-    // popstate olayını dinle
     window.addEventListener("popstate", handlePopState);
-
-    // Geçerli durumu geçmişe ekle
     window.history.pushState(null, null, window.location.href);
 
     return () => {
-      // popstate olayını temizle
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
@@ -68,7 +65,7 @@ const Header = ({ userName, family_id }) => {
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       e.preventDefault();
-      e.returnValue = ""; // Tarayıcı uyarı mesajı gösterir
+      e.returnValue = "";
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
