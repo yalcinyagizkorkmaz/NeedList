@@ -85,3 +85,46 @@ bash
 Kopyala
 Düzenle
 uvicorn main:app --reload
+
+Frontend Setup:
+
+Navigate to the frontend directory:
+bash
+Kopyala
+Düzenle
+cd frontend
+Install dependencies:
+bash
+Kopyala
+Düzenle
+npm install
+Start the development server:
+bash
+Kopyala
+Düzenle
+npm start
+Backend Setup:
+
+Navigate to the backend directory:
+bash
+Kopyala
+Düzenle
+cd backend
+Create and activate a virtual environment:
+bash
+Kopyala
+Düzenle
+python -m venv venv
+source venv/bin/activate  # For Linux/Mac
+venv\Scripts\activate     # For Windows
+Install dependencies:
+bash
+Kopyala
+Düzenle
+pip install -r requirements.txt
+Configure the database connection in the .env file.
+Run the FastAPI server:
+bash
+Kopyala
+Düzenle
+uvicorn main:app --reload
